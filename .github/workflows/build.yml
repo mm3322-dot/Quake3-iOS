@@ -1,25 +1,22 @@
-name: Build Quake3-iOS
-on:
-  workflow_dispatch:
+name: Build Q3
+on: workflow_dispatch
 
 jobs:
   build:
     runs-on: macos-13
     steps:
-      - name: Checkout source + submodules
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          submodules: true
-          recursive: true
-
-      - name: Select Xcode 14.2
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: "14.2"
-
-      - name: Prepare ExportOptions.plist
+          submodules: recursive
+      - name: Build
         run: |
-          cat > ExportOptions.plist <<'EOF'
+          xcodebuild archive \
+            -project Quake3.xcodeproj \
+            -scheme "Quake3" \
+            -sdk iphoneos \
+            -archivePath q3.xcarchive \
+            CODE_SIGNING_ALLOWED=NO
+          cat > export.plist <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -28,33 +25,14 @@ jobs:
         <string>development</string>
         <key>signingStyle</key>
         <string>manual</string>
-        <key>provisioningProfiles</key>
-        <dict/>
 </dict>
 </plist>
 EOF
-
-      - name: Archive
-        run: |
-          xcodebuild archive \
-            -project Quake3.xcodeproj \
-            -scheme "Quake3" \
-            -sdk iphoneos \
-            -configuration Release \
-            -archivePath q3.xcarchive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
-
-      - name: Export IPA
-        run: |
           xcodebuild -exportArchive \
             -archivePath q3.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath ./output
-
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
+            -exportOptionsPlist export.plist \
+            -exportPath ./out
+      - uses: actions/upload-artifact@v4
         with:
           name: quake3
-          path: output/*.ipa
+          path: out/*.ipa
