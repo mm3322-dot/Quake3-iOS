@@ -1,15 +1,23 @@
 name: Build Quake3-iOS
 on:
-  workflow_dispatch: # 手动触发（推荐，你自己点按钮打包）
+  workflow_dispatch:
   push:
     branches: [ main ]
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
-      - name: Checkout source
+      - name: Checkout source + submodules
         uses: actions/checkout@v4
+        with:
+          submodules: true
+          recursive: true
+
+      - name: Select Xcode 14.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "14.2"
 
       - name: Prepare ExportOptions.plist
         run: |
@@ -30,7 +38,7 @@ jobs:
 </plist>
 EOF
 
-      - name: Archive (不签名)
+      - name: Archive (No sign)
         run: |
           xcodebuild archive \
             -project Quake3.xcodeproj \
